@@ -3,48 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cờ Vua - Có Tọa Độ Cột Hàng & Âm Thanh Gỗ</title>
+    <title>Cờ Vua - Có Tọa Độ Cột Hàng</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="game-container">
-        <!-- Phần Bàn Cờ -->
-        <div class="board-wrapper">
-            <div id="chessboard" class="chessboard"></div>
-        </div>
-
-        <!-- Phần Bảng Điều Khiển Bên Phải -->
+        <!-- Bảng điều khiển và thông tin bên cạnh -->
         <div class="sidebar">
-            <div class="timer-box">Thời gian: <span id="timer">00:01</span></div>
+            <h2>Cờ Vua</h2>
+            <div id="turn-indicator">Lượt: Trắng</div>
+            <button id="btn-new">Ván mới</button>
             
-            <div class="captured-box">
-                <h3>QUÂN BỊ ĂN:</h3>
-                <p>Trắng mất:</p>
-                <div id="white-captured" class="captured-list">Chưa có</div>
-                <p>Đen mất:</p>
-                <div id="black-captured" class="captured-list">Chưa có</div>
+            <h3>Quân bị ăn:</h3>
+            <div class="captured-section">
+                <p>Trắng: <span id="white-captured">Chưa có</span></p>
+                <p>Đen: <span id="black-captured">Chưa có</span></p>
             </div>
 
-            <div class="history-box">
-                <h3>LỊCH SỬ NƯỚC ĐI:</h3>
-                <ul id="move-history"></ul>
-            </div>
+            <h3>Lịch sử nước đi:</h3>
+            <ul id="move-history"></ul>
         </div>
-    </div>
-
-    <!-- Thanh công cụ dưới bàn cờ -->
-    <div class="control-bar">
-        <div class="status-info">
-            <span id="game-stats">Tr: 4 | Đ: 25 | Hòa: 3</span>
-            <span id="turn-indicator">Lượt: Trắng</span>
-        </div>
-        <div class="buttons">
-            <button class="btn-custom" id="btn-undo">CHẤP NƯỚC</button>
-            <button class="btn-custom blue" id="btn-save">LƯU</button>
-            <button class="btn-custom red" id="btn-surrender">ĐẦU HÀNG</button>
-            <button class="btn-custom green" id="btn-hd">HD</button>
-            <button class="btn-custom gray" id="btn-new">VÁN MỚI</button>
-        </div>
+        
+        <!-- Khung chứa bàn cờ 8x8 -->
+        <div id="chessboard"></div>
     </div>
 
     <script src="script.js"></script>
