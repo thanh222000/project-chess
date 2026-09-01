@@ -1,184 +1,52 @@
-// Khởi tạo bàn cờ dạng mảng 8x8 chuẩn cờ vua
-// Chữ thường: Quân Đen (r, n, b, q, k, p)
-// Chữ hoa: Quân Trắng (R, N, B, Q, K, P)
-let boardState = [
-    ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'],
-    ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
-    ['',  '',  '',  '',  '',  '',  '',  ''],
-    ['',  '',  '',  '',  '',  '',  '',  ''],
-    ['',  '',  '',  '',  '',  '',  '',  ''],
-    ['',  '',  '',  '',  '',  '',  '',  ''],
-    ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'],
-    ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R']
-];
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cờ Vua - Có Tọa Độ Cột Hàng & Âm Thanh Gỗ</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <!-- Phần Bàn Cờ -->
+        <div class="board-wrapper">
+            <div id="chessboard" class="chessboard"></div>
+        </div>
 
-let selectedCell = null;
-let currentTurn = 'white'; // 'white' hoặc 'black'
-let moveHistory = [];
-let capturedByWhite = [];
-let capturedByBlack = [];
-
-const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-
-// Vẽ bàn cờ ra giao diện HTML
-function renderBoard() {
-    const boardElement = document.getElementById('chessboard');
-    boardElement.innerHTML = '';
-
-    for (let r = 0; r < 8; r++) {
-        for (let c = 0; c < 8; c++) {
-            const square = document.createElement('div');
-            square.classList.add('square');
-            square.classList.add((r + c) % 2 === 0 ? 'light' : 'dark');
-            square.dataset.row = r;
-            square.dataset.col = c;
-
-            // Thêm tọa độ mẫu ở các cạnh góc
-            if (c === 0) {
-                const rankLabel = document.createElement('span');
-                rankLabel.classList.add('coordinate', 'rank');
-                rankLabel.innerText = 8 - r;
-                square.appendChild(rankLabel);
-            }
-            if (r === 7) {
-                const fileLabel = document.createElement('span');
-                fileLabel.classList.add('coordinate', 'file');
-                fileLabel.innerText = files[c];
-                square.appendChild(fileLabel);
-            }
-
-            // Đặt quân cờ nếu có
-            let piece = boardState[r][c];
-            if (piece !== '') {
-                const img = document.createElement('img');
-                img.src = getPieceImageFilename(piece);
-                square.appendChild(img);
-            }
-
-            square.addEventListener('click', () => handleSquareClick(r, c));
-            boardElement.appendChild(square);
-        }
-    }
-}
-
-// Trỏ tới tên file ảnh quân cờ tương ứng bạn đã up lên GitHub
-function getPieceImageFilename(piece) {
-    let color = piece === piece.toUpperCase() ? 'w' : 'b';
-    return `${color}${piece.toLowerCase()}.png`;
-}
-
-// Xử lý khi click vào ô cờ
-function handleSquareClick(r, c) {
-    let piece = boardState[r][c];
-
-    if (selectedCell === null) {
-        // Chọn quân cờ của đúng lượt đi
-        if (piece !== '') {
-            let isWhitePiece = piece === piece.toUpperCase();
-            if ((currentTurn === 'white' && isWhitePiece) || (currentTurn === 'black' && !isWhitePiece)) {
-                selectedCell = { r, c };
-                highlightSquare(r, c, true);
-            }
-        }
-    } else {
-        // Thực hiện di chuyển quân cờ từ ô cũ sang ô mới
-        let startR = selectedCell.r;
-        let startC = selectedCell.c;
-
-        if (startR === r && startC === c) {
-            // Bấm lại vào chính nó để hủy chọn
-            selectedCell = null;
-            renderBoard();
-            return;
-        }
-
-        let targetPiece = boardState[r][c];
-        
-        // Kiểm tra ăn quân cơ bản
-        if (targetPiece !== '') {
-            let isTargetWhite = targetPiece === targetPiece.toUpperCase();
-            let isSourceWhite = boardState[startR][startC] === boardState[startR][startC].toUpperCase();
+        <!-- Phần Bảng Điều Khiển Bên Phải -->
+        <div class="sidebar">
+            <div class="timer-box">Thời gian: <span id="timer">00:01</span></div>
             
-            if (isTargetWhite !== isSourceWhite) {
-                // Ghi nhận quân bị ăn
-                if (isSourceWhite) {
-                    capturedByWhite.push(targetPiece);
-                    updateCapturedUI();
-                } else {
-                    capturedByBlack.push(targetPiece);
-                    updateCapturedUI();
-                }
-            }
-        }
+            <div class="captured-box">
+                <h3>QUÂN BỊ ĂN:</h3>
+                <p>Trắng mất:</p>
+                <div id="white-captured" class="captured-list">Chưa có</div>
+                <p>Đen mất:</p>
+                <div id="black-captured" class="captured-list">Chưa có</div>
+            </div>
 
-        // Cập nhật mảng bàn cờ
-        boardState[r][c] = boardState[startR][startC];
-        boardState[startR][startC] = '';
+            <div class="history-box">
+                <h3>LỊCH SỬ NƯỚC ĐI:</h3>
+                <ul id="move-history"></ul>
+            </div>
+        </div>
+    </div>
 
-        // Ghi lại lịch sử nước đi
-        let moveText = `${files[startC]}${8 - startR} -> ${files[c]}${8 - r}`;
-        moveHistory.push(moveText);
-        updateHistoryUI();
+    <!-- Thanh công cụ dưới bàn cờ -->
+    <div class="control-bar">
+        <div class="status-info">
+            <span id="game-stats">Tr: 4 | Đ: 25 | Hòa: 3</span>
+            <span id="turn-indicator">Lượt: Trắng</span>
+        </div>
+        <div class="buttons">
+            <button class="btn-custom" id="btn-undo">CHẤP NƯỚC</button>
+            <button class="btn-custom blue" id="btn-save">LƯU</button>
+            <button class="btn-custom red" id="btn-surrender">ĐẦU HÀNG</button>
+            <button class="btn-custom green" id="btn-hd">HD</button>
+            <button class="btn-custom gray" id="btn-new">VÁN MỚI</button>
+        </div>
+    </div>
 
-        // Đổi lượt chơi
-        currentTurn = currentTurn === 'white' ? 'black' : 'white';
-        document.getElementById('turn-indicator').innerText = `Lượt: ${currentTurn === 'white' ? 'Trắng' : 'Đen'}`;
-
-        selectedCell = null;
-        renderBoard();
-    }
-}
-
-// Hiển thị khung chọn ô
-function highlightSquare(r, c, status) {
-    renderBoard();
-    const squares = document.querySelectorAll('.square');
-    squares.forEach(sq => {
-        if (parseInt(sq.dataset.row) === r && parseInt(sq.dataset.col) === c) {
-            sq.style.border = '2px solid #ffcc00';
-        }
-    });
-}
-
-// Cập nhật giao diện quân bị ăn
-function updateCapturedUI() {
-    document.getElementById('white-captured').innerHTML = capturedByWhite.length > 0 
-        ? capturedByWhite.map(p => `<img src="${getPieceImageFilename(p)}">`).join('') 
-        : 'Chưa có';
-
-    document.getElementById('black-captured').innerHTML = capturedByBlack.length > 0 
-        ? capturedByBlack.map(p => `<img src="${getPieceImageFilename(p)}">`).join('') 
-        : 'Chưa có';
-}
-
-// Cập nhật lịch sử nước đi
-function updateHistoryUI() {
-    const historyList = document.getElementById('move-history');
-    historyList.innerHTML = moveHistory.map((m, idx) => `<li>${idx + 1}. ${m}</li>`).join('');
-    historyList.scrollTop = historyList.scrollHeight;
-}
-
-// Nút làm mới ván đấu
-document.getElementById('btn-new').addEventListener('click', () => {
-    boardState = [
-        ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'],
-        ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
-        ['',  '',  '',  '',  '',  '',  '',  ''],
-        ['',  '',  '',  '',  '',  '',  '',  ''],
-        ['',  '',  '',  '',  '',  '',  '',  ''],
-        ['',  '',  '',  '',  '',  '',  '',  ''],
-        ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'],
-        ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R']
-    ];
-    currentTurn = 'white';
-    moveHistory = [];
-    capturedByWhite = [];
-    capturedByBlack = [];
-    document.getElementById('turn-indicator').innerText = 'Lượt: Trắng';
-    updateCapturedUI();
-    updateHistoryUI();
-    renderBoard();
-});
-
-// Chạy lần đầu khi tải trang
-renderBoard();
+    <script src="script.js"></script>
+</body>
+</html>
