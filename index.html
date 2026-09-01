@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cờ Vua</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="sidebar">
+            <h2>Cờ Vua</h2>
+            <div id="turn-indicator">Lượt: Trắng</div>
+            <button id="btn-new">Ván mới</button>
+            <h3>Quân bị ăn:</h3>
+            <div class="captured-section">
+                <p>Trắng: <span id="white-captured">Chưa có</span></p>
+                <p>Đen: <span id="black-captured">Chưa có</span></p>
+            </div>
+            <h3>Lịch sử nước đi:</h3>
+            <ul id="move-history"></ul>
+        </div>
+        <div id="chessboard"></div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
