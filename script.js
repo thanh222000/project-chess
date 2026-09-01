@@ -1,78 +1,163 @@
-// Khởi tạo bàn cờ vua với đường dẫn ảnh nằm chung thư mục gốc
-var config = {
-  draggable: true,
-  position: 'start',
-  // Trỏ thẳng tới tên file ảnh nằm ở thư mục gốc hiện tại
-  pieceTheme: '{piece}.png',
-  onDragStart: onDragStart,
-  onDrop: onDrop,
-  onSnapEnd: onSnapEnd
-};
+let boardState = [
+    ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'],
+    ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
+    ['',  '',  '',  '',  '',  '',  '',  ''],
+    ['',  '',  '',  '',  '',  '',  '',  ''],
+    ['',  '',  '',  '',  '',  '',  '',  ''],
+    ['',  '',  '',  '',  '',  '',  '',  ''],
+    ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'],
+    ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R']
+];
 
-var board = Chessboard('board', config);
+let selectedCell = null;
+let currentTurn = 'white';
+let moveHistory = [];
+let capturedByWhite = [];
+let capturedByBlack = [];
 
-var game = new Chess();
+const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 
-function onDragStart (source, piece, position, orientation) {
-  // Không cho phép đi quân khi game đã kết thúc
-  if (game.game_over()) return false;
+function renderBoard() {
+    const boardElement = document.getElementById('chessboard');
+    boardElement.innerHTML = '';
 
-  // Chỉ cho phép di chuyển quân của lượt hiện tại
-  if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
-      (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
-    return false;
-  }
-}
+    for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+            const square = document.createElement('div');
+            square.classList.add('square');
+            square.classList.add((r + c) % 2 === 0 ? 'light' : 'dark');
+            square.dataset.row = r;
+            square.dataset.col = c;
 
-function onDrop (source, target) {
-  // Kiểm tra nước đi hợp lệ
-  var move = game.move({
-    from: source,
-    to: target,
-    promotion: 'q' // Mặc định phong hậu khi tốt đi đến cuối bàn cờ
-  });
+            if (c === 0) {
+                const rankLabel = document.createElement('span');
+                rankLabel.classList.add('coordinate', 'rank');
+                rankLabel.innerText = 8 - r;
+                square.appendChild(rankLabel);
+            }
+            if (r === 7) {
+                const fileLabel = document.createElement('span');
+                fileLabel.classList.add('coordinate', 'file');
+                fileLabel.innerText = files[c];
+                square.appendChild(fileLabel);
+            }
 
-  // Nếu nước đi không hợp lệ thì trả về quân cờ về vị trí cũ
-  if (move === null) return 'snapback';
+            let piece = boardState[r][c];
+            if (piece !== '') {
+                const img = document.createElement('img');
+                img.src = getPieceImageFilename(piece);
+                square.appendChild(img);
+            }
 
-  updateStatus();
-}
-
-// Cập nhật lại vị trí bàn cờ sau khi quân cờ di chuyển xong
-function onSnapEnd () {
-  board.position(game.fen());
-}
-
-function updateStatus () {
-  var status = '';
-
-  var moveColor = 'Trắng';
-  if (game.turn() === 'b') {
-    moveColor = 'Đen';
-  }
-
-  // Kiểm tra chiếu hết (Checkmate)
-  if (game.in_checkmate()) {
-    status = 'Trận đấu kết thúc, quân ' + moveColor + ' đã bị chiếu hết!';
-  }
-  // Kiểm tra hòa cờ (Draw)
-  else if (game.in_draw()) {
-    status = 'Trận đấu kết thúc, hòa cờ!';
-  }
-  // Trận đấu đang diễn ra bình thường
-  else {
-    status = 'Đến lượt quân: ' + (game.turn() === 'w' ? 'Trắng' : 'Đen');
-    if (game.in_check()) {
-      status += ', quân ' + moveColor + ' đang bị chiếu!';
+            square.addEventListener('click', () => handleSquareClick(r, c));
+            boardElement.appendChild(square);
+        }
     }
-  }
-
-  // Hiển thị trạng thái lên web
-  var statusEl = document.getElementById('status');
-  if (statusEl) {
-    statusEl.innerHTML = status;
-  }
 }
 
-// Cập nhật trạng thái ban đầu khi load trang
-updateStatus();
+function getPieceImageFilename(piece) {
+    let color = piece === piece.toUpperCase() ? 'w' : 'b';
+    return `${color}${piece.toLowerCase()}.png`;
+}
+
+function handleSquareClick(r, c) {
+    let piece = boardState[r][c];
+
+    if (selectedCell === null) {
+        if (piece !== '') {
+            let isWhitePiece = piece === piece.toUpperCase();
+            if ((currentTurn === 'white' && isWhitePiece) || (currentTurn === 'black' && !isWhitePiece)) {
+                selectedCell = { r, c };
+                highlightSquare(r, c);
+            }
+        }
+    } else {
+        let startR = selectedCell.r;
+        let startC = selectedCell.c;
+
+        if (startR === r && startC === c) {
+            selectedCell = null;
+            renderBoard();
+            return;
+        }
+
+        let targetPiece = boardState[r][c];
+        
+        if (targetPiece !== '') {
+            let isTargetWhite = targetPiece === targetPiece.toUpperCase();
+            let isSourceWhite = boardState[startR][startC] === boardState[startR][startC].toUpperCase();
+            
+            if (isTargetWhite !== isSourceWhite) {
+                if (isSourceWhite) {
+                    capturedByWhite.push(targetPiece);
+                    updateCapturedUI();
+                } else {
+                    capturedByBlack.push(targetPiece);
+                    updateCapturedUI();
+                }
+            }
+        }
+
+        boardState[r][c] = boardState[startR][startC];
+        boardState[startR][startC] = '';
+
+        let moveText = `${files[startC]}${8 - startR} -> ${files[c]}${8 - r}`;
+        moveHistory.push(moveText);
+        updateHistoryUI();
+
+        currentTurn = currentTurn === 'white' ? 'black' : 'white';
+        document.getElementById('turn-indicator').innerText = `Lượt: ${currentTurn === 'white' ? 'Trắng' : 'Đen'}`;
+
+        selectedCell = null;
+        renderBoard();
+    }
+}
+
+function highlightSquare(r, c) {
+    renderBoard();
+    const squares = document.querySelectorAll('.square');
+    squares.forEach(sq => {
+        if (parseInt(sq.dataset.row) === r && parseInt(sq.dataset.col) === c) {
+            sq.style.border = '2px solid #ffcc00';
+        }
+    });
+}
+
+function updateCapturedUI() {
+    document.getElementById('white-captured').innerHTML = capturedByWhite.length > 0 
+        ? capturedByWhite.map(p => `<img src="${getPieceImageFilename(p)}">`).join('') 
+        : 'Chưa có';
+
+    document.getElementById('black-captured').innerHTML = capturedByBlack.length > 0 
+        ? capturedByBlack.map(p => `<img src="${getPieceImageFilename(p)}">`).join('') 
+        : 'Chưa có';
+}
+
+function updateHistoryUI() {
+    const historyList = document.getElementById('move-history');
+    historyList.innerHTML = moveHistory.map((m, idx) => `<li>${idx + 1}. ${m}</li>`).join('');
+    historyList.scrollTop = historyList.scrollHeight;
+}
+
+document.getElementById('btn-new').addEventListener('click', () => {
+    boardState = [
+        ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'],
+        ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
+        ['',  '',  '',  '',  '',  '',  '',  ''],
+        ['',  '',  '',  '',  '',  '',  '',  ''],
+        ['',  '',  '',  '',  '',  '',  '',  ''],
+        ['',  '',  '',  '',  '',  '',  '',  ''],
+        ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'],
+        ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R']
+    ];
+    currentTurn = 'white';
+    moveHistory = [];
+    capturedByWhite = [];
+    capturedByBlack = [];
+    document.getElementById('turn-indicator').innerText = 'Lượt: Trắng';
+    updateCapturedUI();
+    updateHistoryUI();
+    renderBoard();
+});
+
+renderBoard();
